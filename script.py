@@ -2,13 +2,48 @@
 # input debits and credits to the python command line.
 # save account records to a csvfile 'CIBC_account_records'
 
-# Import most recent month's data from csvfile as a list 'Wlist'
-#   (Wlist is now modified by MAINLOOP and saved back to csvfile)
+months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
+# Import most recent month's data from csvfile
 with open("/home/royden99/Documents/CIBC_account_records.csv") as csvfile:
-    File = csvfile.read()
+    raw = csvfile.readlines()
 
-print(File)
+# find last line
+linecount = len(raw) - 1
+# work backward to find most recent month heading
+while True:
+    if raw[linecount][0:3] in months:
+        break
+    else:
+        linecount -= 1
+
+# INITIAL DATA:
+# month
+MonthYear = raw[linecount].replace(',' , '')
+
+# list accounts
+linecount += 1
+charbuff = []
+Accounts = []
+chars = raw[linecount]
+
+for i in range(len(chars)):
+    if i >= 1:
+        if chars[i] != ',' and chars[i] != '\n':
+            charbuff.append(chars[i])
+        elif chars[i] == ',':
+            if chars[i-1] != ',':
+                Accounts.append("".join(charbuff))
+                charbuff = []
+
+Accounts.append("".join(charbuff))
+
+# dictionary for each account with a list of transactions & messages 
+linecount += 1
+while True:
+    linecount += 1
+                
+# Clean up & format raw csv data for viewing
 
 # MAINLOOP:
 
