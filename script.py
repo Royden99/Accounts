@@ -21,33 +21,29 @@ while True:
 # month
 MonthYear = raw[linecount].replace(',' , '')
 
-# list accounts
-linecount += 1
-charbuff = []
-Accounts = []
-chars = raw[linecount]
+# dict Accounts: details accounts found on the line directly after MonthYear
+#   - syntax[ 'account name':(square no. that the account name is in) ]
+Accounts = {'cash':1 , 'chequing':7 , 'visa credit':12 , 'mastercard credit':17 , 'TOTAL':22}
 
-for i in range(len(chars)):
-    if i >= 1:
-        if chars[i] != ',' and chars[i] != '\n':
-            charbuff.append(chars[i])
-        elif chars[i] == ',':
-            if chars[i-1] != ',':
-                Accounts.append("".join(charbuff))
-                charbuff = []
+# each account has a dict with a list of transactions & messages 
+#   - syntax[ 'transaction':'message' ]
+Cash = {}
+Chequing = {}
+Visa_credit = {}
+Mastercard_credit = {}
+TOTAL = {}
 
-Accounts.append("".join(charbuff))
-
-# dictionary for each account with a list of transactions & messages 
-linecount += 1
+# populate account dicts with data found in the next few rows
+linecount += 2
 while True:
     linecount += 1
                 
-# Clean up & format raw csv data for viewing
+
+# gather conclusion data
 
 # MAINLOOP:
 
-# Display Wlist
+# Display data
 
 # Gather user input
 
