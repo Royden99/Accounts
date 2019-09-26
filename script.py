@@ -5,28 +5,29 @@
 months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 delimiter = ','
 
-# Import most recent month's data from csvfile
+# Import entire csvfile
 with open("/home/royden99/Documents/CIBC_account_records.csv") as csvfile:
     raw = csvfile.readlines()
 
-# find last line
+# from the end of 'raw', go back to most recent month's data
 linecount = len(raw) - 1
-# work backward to find most recent month heading
 while True:
     if raw[linecount][0:3] in months:
         break
     else:
         linecount -= 1
 
-# INITIAL DATA:
+# STORE DATA FROM 'raw' AS LISTS & VARIABLES FOR EASE OF USE
 # month
 MonthYear = raw[linecount].replace(delimiter , '')
 
-# dict Accounts: details accounts found on the line directly after MonthYear
-#   - syntax[ 'account name':(square no. that the account name is in) ]
+# dict Accounts: account details
+#   - syntax[ 'account name' : square no. that the account name is in ]
 Accounts = {'cash':1 , 'chequing':5 , 'visa credit':9 , 'mastercard credit':13 , 'TOTAL':17}
 
-# each account has a list of transactions & a list of corresponding notes
+# each account exists as a list of transactions & a list of corresponding notes
+#  Format of '_t' lists:  [t1, t2, ... tn, profit, loss, net, final_balance]
+#  Format of '_n' lists:  [n1, n2, ... nn]
 Cash_t = []
 Cash_n = []
 Chequing_t = []
@@ -38,59 +39,57 @@ Mastercard_credit_n = []
 TOTAL_t = []
 TOTAL_n = []
 
-# populate account dicts with data in transaction columns
+# Populate lists
 linecount += 2
 A = Accounts['cash']
 B = Accounts['chequing']
 C = Accounts['visa credit']
 D = Accounts['mastercard credit']
 E = Accounts['TOTAL']
-while True:
+
+while True:     # successive lines
     linecount += 1
-    line = raw[linecount]
+    try:
+        line = raw[linecount]
+    except IndexError:
+        break   # end of file
+
     squarecount = 0
     charbuff = []
-    # rows in transaction columns will begin with a delimiter
-    if line[0] == delimiter:
-        # keep track of our horizontal location in the spreadsheet, leftmost square is '1'
-        for char in line:
-            # collect data one char at a time in charbuff
-            if char != delimiter:
-               charbuff.append(char)
-            else:
-                # build transaction & note content from chars collected in charbuff,
-                #   add them to account lists in 'squarecount' columns
-                content = ''.join(charbuff)
-                if content != '':
-                    if squarecount == A:
-                        Cash_t.append(content)
-                    elif squarecount == A + 1:
-                        Cash_n.append(content)
-                    elif squarecount == B:
-                        Chequing_t.append(content)
-                    elif squarecount == B + 1:
-                        Chequing_n.append(content)
-                    elif squarecount == C:
-                        Visa_credit_t.append(content)
-                    elif squarecount == C + 1:
-                        Visa_credit_n.append(content)
-                    elif squarecount == D:
-                        Mastercard_credit_t.append(content)
-                    elif squarecount == D + 1:
-                        Mastercard_credit_n.append(content)
-                    elif squarecount == E:
-                        TOTAL_t.append(content)
-                    elif squarecount == E + 1:
-                        TOTAL_n.append(content)
-                    # reset charbuff
-                charbuff = []
-                # count squares
-                squarecount += 1
 
-    # end of transaction columns have been reached;
-    # gather conclusion data
-    else:
-        break
+    for char in line:       # successive chars
+        # collect data (between delimiters) one char at a time in charbuff
+        if char != delimiter:
+           charbuff.append(char)
+        else:
+            # turn list 'charbuff' into a string
+            content = ''.join(charbuff)
+            # save the content, if any, to whatever list is indicated by 'squarecount'
+            if content != '':
+                if squarecount == A:
+                    Cash_t.append(content)
+                elif squarecount == A + 1:
+                    Cash_n.append(content)
+                elif squarecount == B:
+                    Chequing_t.append(content)
+                elif squarecount == B + 1:
+                    Chequing_n.append(content)
+                elif squarecount == C:
+                    Visa_credit_t.append(content)
+                elif squarecount == C + 1:
+                    Visa_credit_n.append(content)
+                elif squarecount == D:
+                    Mastercard_credit_t.append(content)
+                elif squarecount == D + 1:
+                    Mastercard_credit_n.append(content)
+                elif squarecount == E:
+                    TOTAL_t.append(content)
+                elif squarecount == E + 1:
+                    TOTAL_n.append(content)
+                # reset charbuff
+            charbuff = []
+            # count squares
+            squarecount += 1
 
 print("Cash_t = ", Cash_t)
 print("Cash_n = ", Cash_n)
