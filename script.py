@@ -2,131 +2,185 @@
 # input debits and credits to the python command line.
 # save account records to a csvfile 'CIBC_account_records'
 
+# Housekeeping
+#-------------------------------------------------------------------------------------------
+
+# Transactions are handled using the decimal module to avoid the error associated with floats
+import decimal
+
+decimal.Context(prec=28, rounding=decimal.ROUND_HALF_EVEN, Emin=None, Emax=None, capitals=None, 
+        clamp=None, flags=None, traps=None)
+
+def deci(string):
+    """ Return arg 'string' converted to a 'decimal.Decimal()' object. """
+    
+    # format transaction strings
+    if ' ' in string:    
+        string = string.replace(' ', '', 1)
+    
+    return decimal.Decimal(string)
+
 months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 delimiter = ','
 
 # Import entire csvfile
-with open("/home/royden99/Documents/CIBC_account_records.csv") as csvfile:
+with open("/home/royden99/Documents/account_records.csv") as csvfile:
     raw = csvfile.readlines()
 
-# from the end of 'raw', go back to most recent month's data
-linecount = len(raw) - 1
-while True:
-    if raw[linecount][0:3] in months:
-        break
-    else:
-        linecount -= 1
+def reset_linecount(): 
+    """ Var 'linecount' holds the value of some line in the raw file data.
+    This function positions 'linecount' at the top of the most recent monthly dataset. """
+    
+    global linecount 
 
-# STORE DATA FROM 'raw' AS LISTS & VARIABLES FOR EASE OF USE
-# month
-MonthYear = raw[linecount].replace(delimiter , '')
-
-# dict Accounts: account details
-#   - syntax[ 'account name' : square no. that the account name is in ]
-Accounts = {'cash':1 , 'chequing':5 , 'visa credit':9 , 'mastercard credit':13 , 'TOTAL':17}
-
-# each account exists as a list of transactions & a list of corresponding notes
-#  Format of '_t' lists:  [t1, t2, ... tn, profit, loss, net, final_balance]
-#  Format of '_n' lists:  [n1, n2, ... nn]
-Cash_t = []
-Cash_n = []
-Chequing_t = []
-Chequing_n = []
-Visa_credit_t = []
-Visa_credit_n = []
-Mastercard_credit_t = []
-Mastercard_credit_n = []
-TOTAL_t = []
-TOTAL_n = []
-
-# Populate lists
-linecount += 2
-A = Accounts['cash']
-B = Accounts['chequing']
-C = Accounts['visa credit']
-D = Accounts['mastercard credit']
-E = Accounts['TOTAL']
-
-while True:     # successive lines
-    linecount += 1
-    try:
-        line = raw[linecount]
-    except IndexError:
-        break   # end of file
-
-    squarecount = 0
-    charbuff = []
-
-    for char in line:       # successive chars
-        # collect data (between delimiters) one char at a time in charbuff
-        if char != delimiter:
-           charbuff.append(char)
+    # Go to the last line of the file and work back toward the beginning, looking for the
+    #   title
+    linecount = len(raw) - 1
+    while True:
+        if raw[linecount][0:3] in months:
+            break
         else:
-            # turn list 'charbuff' into a string
-            content = ''.join(charbuff)
-            # save the content, if any, to whatever list is indicated by 'squarecount'
-            if content != '':
-                if squarecount == A:
-                    Cash_t.append(content)
-                elif squarecount == A + 1:
-                    Cash_n.append(content)
-                elif squarecount == B:
-                    Chequing_t.append(content)
-                elif squarecount == B + 1:
-                    Chequing_n.append(content)
-                elif squarecount == C:
-                    Visa_credit_t.append(content)
-                elif squarecount == C + 1:
-                    Visa_credit_n.append(content)
-                elif squarecount == D:
-                    Mastercard_credit_t.append(content)
-                elif squarecount == D + 1:
-                    Mastercard_credit_n.append(content)
-                elif squarecount == E:
-                    TOTAL_t.append(content)
-                elif squarecount == E + 1:
-                    TOTAL_n.append(content)
-                # reset charbuff
-            charbuff = []
-            # count squares
-            squarecount += 1
+            linecount -= 1
+    
 
-print("Cash_t = ", Cash_t)
-print("Cash_n = ", Cash_n)
-print("Chequing_t = ", Chequing_t)
-print("Chequing_n = ", Chequing_n)
-print("Visa_credit_t = ", Visa_credit_t)
-print("Visa_credit_n = ", Visa_credit_n)
-print("Mastercard_credit_t = ", Mastercard_credit_t)
-print("Mastercard_credit_n = ", Mastercard_credit_n)
-print("TOTAL_t = ", TOTAL_t)
-print("TOTAL_n = ", TOTAL_n)
+def build_cell(n):
+    """ This function builds and returns a string out of chars found in cell "n", on line
+    'linecount'.  A 'cell' being an area separated by delimiters. """
 
-# MAINLOOP:
+    cellcount = 0
+    charbuff = []
+    line = raw[linecount]
 
-# Display data
+    for char in line:
+        # find desired cell
+        if cellcount != n:
+            if char == delimiter:
+                cellcount += 1
+        # build a string from chars in cell
+        else:
+            # collect one char at a time in 'charbuff', until a delimiter is found
+            #   or the end of the line is reached (denoted by '\n')
+            # then turn list 'charbuff' into a string
+            if char == delimiter:
+                content = ''.join(charbuff)
+                return str(content)
+            elif char == '\n':
+                if charbuff != '':
+                    content = ''.join(charbuff)
+                    return str(content)
+                else:
+                    return None
+            else:
+                charbuff.append(char)
 
-# Gather user input
+    return None
 
-# React to input:
+#-------------------------------------------------------------------------------------------
+
+# read title of current fiscal month
+reset_linecount()
+MonthYear = build_cell(0)
+
+# find boundaries of assets & liabilities
+linecount += 1
+account_type = {'assets' : 0, 'liabilities' : 0}
+cellcount = 0
+while True:
+    typ = build_cell(cellcount)
+    if typ == 'ASSETS':
+        account_type['assets'] = cellcount
+    elif typ == 'LIABILITIES':
+        account_type['liabilities'] = cellcount
+    elif typ == None:
+        print('Error:\n\tFailed to find "ASSETS" and "LIABILITIES" headings.')
+        quit()
+    if account_type['assets'] != 0 and account_type['liabilities'] != 0:
+        break
+    cellcount += 1
+
+# ACCOUNTS: two lists--'Assets' & 'Liabilities'--each containing individual accounts
+#    - each account consists of the following info:
+#       [name, [transactions & tags], transaction column, tag column, final balance]
+
+Assets = []
+Liabilities = []
+
+# read names of existing accounts, find what column they are in
+linecount += 1
+cellcount = 0
+while True:
+    nam = build_cell(cellcount)
+    if nam == None:
+        break
    
-    # Default (input starts with '-' or '+'):        
+    if nam != '':
+        if cellcount >= account_type['liabilities']:
+            Liabilities.append([nam, [], cellcount, (cellcount + 1), 0])
+        elif cellcount >= account_type['assets']:
+            Assets.append([nam, [], cellcount, (cellcount + 1), 0])
 
-        # Add new credit or debit & message to Wlist
-        
-        # Calculate & add to Wlist:
-        #   * Total profits
-        #   * Total spent
-        #   * Actual amount gained or lost
-        #   * New balance
+    cellcount += 1
 
-    # Input 'new month': 
-    #    * save
-    #    * write headings in csvfile for new month
-    #    * start a new Wlist for new current month
- 
-    # Input 'save': write Wlist to csvfile (save most recent month's data in complete format)
+# fill in 'transactions & tags' as follows: [[transaction1, tag1], [transaction2, tag2], ...]
+def read_transactions(n):
+    """ Read transaction info into the second entry ([1]) of all accounts listed under arg
+    'n' """
+    
+    global linecount
 
-    # Input 'exit': quit
+    for acnt in n:
+        reset_linecount()
+        linecount += 3
+        while True:
+            try:
+                trans = build_cell(acnt[2])
+                tag   = build_cell(acnt[3])
+                linecount += 1
+                next_tag = build_cell(acnt[3])
+            except IndexError:
+                break
+
+            # read transactions until two consecutive empty cells in the 'tag' column are found
+            if tag != '' or next_tag != '':
+                if trans != '':
+                    entry = [] 
+                    entry.append(deci(trans))
+                    entry.append(tag)
+                    acnt[1].append(entry)
+
+            else:
+                break
+
+read_transactions(Assets)
+read_transactions(Liabilities)
+
+# calculate 'final balance'
+def calc_bal(account):
+    """ This function, for the 'account' specified, looks at last month's final balance
+    and all of this month's transactions, and returns the new balance. 
+    Arg 'account' must be an item in list 'Assets' or 'Liabilities.' """
+    
+    global linecount
+
+    # find previous balance
+    reset_linecount()
+    while True:
+        linecount -= 1
+        if build_cell(0) == 'Final balance:':
+            bal = deci(build_cell(account[2]))
+            break
+
+    # add all (+ve and -ve) transactions to 'bal'
+    for item in account[1]:
+        trans = item[0]
+        bal += trans
+
+    account[4] = bal
+
+
+calc_bal(Assets[1])
+print(Assets[1][4])
+
+# display accounts in readable format
 
 quit()
