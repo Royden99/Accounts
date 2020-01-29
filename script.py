@@ -1,9 +1,4 @@
-# MAIN GOAL:
-# input debits and credits to the python command line.
-# save account records to a csvfile 'CIBC_account_records'
-
-# Housekeeping
-#-------------------------------------------------------------------------------------------
+# ESTABLISH SOME BUILDING BLOCKS
 
 # Transactions are handled using the decimal module to avoid the error associated with floats
 import decimal
@@ -22,10 +17,6 @@ def deci(string):
 
 months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 delimiter = ','
-
-# Import entire csvfile
-with open("/home/royden99/Documents/account_records.csv") as csvfile:
-    raw = csvfile.readlines()
 
 def reset_linecount(): 
     """ Var 'linecount' holds the value of some line in the raw file data.
@@ -75,7 +66,12 @@ def build_cell(n):
 
     return None
 
-#-------------------------------------------------------------------------------------------
+
+# READ CSV DATA INTO PROGRAM
+
+# Import entire csvfile
+with open("/home/royden99/Documents/account_records.csv") as csvfile:
+    raw = csvfile.readlines()
 
 # read title of current fiscal month
 reset_linecount()
@@ -100,12 +96,12 @@ while True:
 
 # ACCOUNTS: two lists--'Assets' & 'Liabilities'--each containing individual accounts
 #    - each account consists of the following info:
-#       [name, [transactions & tags], transaction column, tag column, final balance]
+#       [name, [transactions & tags], transaction column, tag column, final balance, previous balance]
 
 Assets = []
 Liabilities = []
 
-# read names of existing accounts, find what column they are in
+# find existing accounts and register them, including name and column info
 linecount += 1
 cellcount = 0
 while True:
@@ -115,9 +111,9 @@ while True:
    
     if nam != '':
         if cellcount >= account_type['liabilities']:
-            Liabilities.append([nam, [], cellcount, (cellcount + 1), 0])
+            Liabilities.append([nam, [], cellcount, (cellcount + 1), 0, 0])
         elif cellcount >= account_type['assets']:
-            Assets.append([nam, [], cellcount, (cellcount + 1), 0])
+            Assets.append([nam, [], cellcount, (cellcount + 1), 0, 0])
 
     cellcount += 1
 
@@ -144,7 +140,7 @@ def read_transactions(n):
             if tag != '' or next_tag != '':
                 if trans != '':
                     entry = [] 
-                    entry.append(deci(trans))
+                    entry.append(trans)
                     entry.append(tag)
                     acnt[1].append(entry)
 
@@ -157,7 +153,7 @@ read_transactions(Liabilities)
 # calculate 'final balance'
 def calc_bal(account):
     """ This function, for the 'account' specified, looks at last month's final balance
-    and all of this month's transactions, and returns the new balance. 
+    and all of this month's transactions, and updates the account with the new balance. 
     Arg 'account' must be an item in list 'Assets' or 'Liabilities.' """
     
     global linecount
@@ -168,19 +164,43 @@ def calc_bal(account):
         linecount -= 1
         if build_cell(0) == 'Final balance:':
             bal = deci(build_cell(account[2]))
+            account[5] = bal
             break
 
     # add all (+ve and -ve) transactions to 'bal'
     for item in account[1]:
-        trans = item[0]
+        trans = deci(item[0])
         bal += trans
 
     account[4] = bal
 
+for acnt in Assets:
+    calc_bal(acnt)
+for acnt in Liabilities:
+    calc_bal(acnt)
 
-calc_bal(Assets[1])
-print(Assets[1][4])
+
+# MANIPULATE DATA IN-PROGRAM
 
 # display accounts in readable format
+def display(account):
+    """Display the information in the specified 'account' that the user wants to see:
+    1) Account name, 2) Previous balance, 3) Transactions & tags, and 4) Final balance."""
+    
+    print("\n\n\n\t{}\n\t{}\n\n prev. balance:\t{}\n".format(account[0],
+        ''.ljust(len(account[0]),'='), account[5]))
+    for item in account[1]:
+        print(item[0].rjust(13), '\t', item[1].ljust(True))
+    print("\n final balance:\t", account[4])
+    print("\n=============================================================")
+
+display(Assets[1])
+display(Liabilities[0])
+
+while True:
+    # Commands: select account, add transaction, display statement, start new month
+    cmd = raw_input()
+    if cmd == 
+
 
 quit()
