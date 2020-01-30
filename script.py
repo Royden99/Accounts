@@ -1,15 +1,10 @@
 # ESTABLISH SOME BUILDING BLOCKS
 
-<<<<<<< HEAD
-months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-delimiter = ','
-=======
 # Transactions are handled using the decimal module to avoid the error associated with floats
 import decimal
 
 decimal.Context(prec=28, rounding=decimal.ROUND_HALF_EVEN, Emin=None, Emax=None, capitals=None, 
         clamp=None, flags=None, traps=None)
->>>>>>> e696a3774872a24cd2e2ea3b8d7fc23f46b8d4ad
 
 def deci(string):
     """ Return arg 'string' converted to a 'decimal.Decimal()' object. """
@@ -172,93 +167,7 @@ def calc_bal(account):
             account[5] = bal
             break
 
-<<<<<<< HEAD
-# INITIAL DATA:
-# month
-MonthYear = raw[linecount].replace(delimiter , '')
-
-# dict Accounts: details accounts found on the line directly after MonthYear
-#   - syntax[ 'account name':(square no. that the account name is in) ]
-Accounts = {'cash':1 , 'chequing':5 , 'visa credit':9 , 'mastercard credit':13 , 'TOTAL':17}
-
-# each account has a list of transactions & a list of corresponding notes
-Cash_t = []
-Cash_n = []
-Chequing_t = []
-Chequing_n = []
-Visa_credit_t = []
-Visa_credit_n = []
-Mastercard_credit_t = []
-Mastercard_credit_n = []
-TOTAL_t = []
-TOTAL_n = []
-
-# populate account dicts with data in transaction columns
-linecount += 2
-A = Accounts['cash']
-B = Accounts['chequing']
-C = Accounts['visa credit']
-D = Accounts['mastercard credit']
-E = Accounts['TOTAL']
-while True:
-    linecount += 1
-    line = raw[linecount]
-    squarecount = 0
-    charbuff = []
-    # rows in transaction columns will begin with a delimiter
-    if line[0] == delimiter:
-        # keep track of our horizontal location in the spreadsheet, leftmost square is '1'
-        for char in line:
-            # collect data one char at a time in charbuff
-            if char != delimiter:
-               charbuff.append(char)
-            else:
-                # build transaction & note content from chars collected in charbuff,
-                #   add them to account lists in 'squarecount' columns
-                content = ''.join(charbuff)
-                if content != '':
-                    if squarecount == A:
-                        Cash_t.append(content)
-                    elif squarecount == A + 1:
-                        Cash_n.append(content)
-                    elif squarecount == B:
-                        Chequing_t.append(content)
-                    elif squarecount == B + 1:
-                        Chequing_n.append(content)
-                    elif squarecount == C:
-                        Visa_credit_t.append(content)
-                    elif squarecount == C + 1:
-                        Visa_credit_n.append(content)
-                    elif squarecount == D:
-                        Mastercard_credit_t.append(content)
-                    elif squarecount == D + 1:
-                        Mastercard_credit_n.append(content)
-                    elif squarecount == E:
-                        TOTAL_t.append(content)
-                    elif squarecount == E + 1:
-                        TOTAL_n.append(content)
-                    # reset charbuff
-                charbuff = []
-                # count squares
-                squarecount += 1
-
-    # end of transaction columns have been reached;
-    # gather conclusion data
-    else:
-        break
-
-print("Cash_t = ", Cash_t)
-print("Cash_n = ", Cash_n)
-print("Chequing_t = ", Chequing_t)
-print("Chequing_n = ", Chequing_n)
-print("Visa_credit_t = ", Visa_credit_t)
-print("Visa_credit_n = ", Visa_credit_n)
-print("Mastercard_credit_t = ", Mastercard_credit_t)
-print("Mastercard_credit_n = ", Mastercard_credit_n)
-print("TOTAL_t = ", TOTAL_t)
-print("TOTAL_n = ", TOTAL_n)
-=======
-    # add all (+ve and -ve) transactions to 'bal'
+   # add all (+ve and -ve) transactions to 'bal'
     for item in account[1]:
         trans = deci(item[0])
         bal += trans
@@ -272,7 +181,6 @@ for acnt in Liabilities:
 
 
 # MANIPULATE DATA IN-PROGRAM
->>>>>>> e696a3774872a24cd2e2ea3b8d7fc23f46b8d4ad
 
 # display accounts in readable format
 def display(account):
