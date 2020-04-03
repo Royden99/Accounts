@@ -1,5 +1,5 @@
 # MODULE 'SCRIPT':
-#   Handle user input, responding with data and functions loaded from 'INIT.py'
+#   Handle user input, responding with data and functions loaded from 'INIT.py' (currently also func.py)
 
 import decimal
 import var

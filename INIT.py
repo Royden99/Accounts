@@ -31,7 +31,7 @@ def set_linecount(MoYr="current"):
     This function positions 'linecount' at the top of the Fiscal Month specified by
     arg 'MoYr', or the current one if none is specified. """
     
-    global var.linecount 
+#   global linecount 
 
     if MoYr == "current":
         while True:
@@ -97,7 +97,7 @@ def read_transactions(n):
     """ Read transaction info into the second entry ([1]) of all accounts listed under arg
     'n' """
     
-    global var.linecount
+#   global var.linecount
 
     for acnt in n:
         set_linecount()
@@ -127,16 +127,21 @@ def calc_bal(account):
     and all of this month's transactions, and updates the account with the new balance. 
     Arg 'account' must be an item in list 'Assets' or 'Liabilities.' """
     
-    global var.linecount
+#   global var.linecount
 
     # find previous balance
-    set_linecount()
-    while True:
-        var.linecount -= 1
-        if build_cell(0) == 'Final balance:':
-            bal = deci(build_cell(account[2]))
-            account[5] = bal
-            break
+    try:
+        set_linecount()
+        while True:
+            var.linecount -= 1
+            if build_cell(0) == 'Final balance:':
+                bal = deci(build_cell(account[2]))
+                account[5] = bal
+                break
+    except IndexError:
+        print("Could not get final balance from previous Fiscal Month for account '{}'.\nPrevious balance assumed to be '0'.".format(account[0])) 
+        account[5] = 0
+        bal = 0
 
    # add all (+ve and -ve) transactions to 'bal'
     for item in account[1]:
@@ -151,8 +156,8 @@ def load_fiscal_month(MoYr="recent"):
     'Assets' and 'Liabilities.' This data is from the Fiscal Month titled 'MoYr'
     in the csvfile. """
 
-    global var.linecount
-    global var.MonthYear
+#   global var.linecount
+#   global var.MonthYear
     
     # read title of fiscal month
     if set_linecount(MoYr) == 0:

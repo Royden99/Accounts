@@ -7,21 +7,22 @@ INPUT	* Debits  (-ve amounts),  what it was spent on
 OUTPUT	* Gross profit
 	* How much spent
 	* Net profit
-	* New total
+	* New final balances
 
-SAVE information to csvfile "Balance," in monthly sections
+SAVE information to csvfile in monthly sections
 
 
 	Program operation:
 
 enter:
-  choose to edit existing month or start new
+  Load previous information from csvfile
 
-mainloop:
-  Enter inputs on command line
+mainloop commands (custom command line):
+  Enter transactions
   Calculate outputs
-  Display updated info for current month after every input
+  Display updated info for current month
+  Navigate, create, or delete individual accounts
+  Navigate, create, or delete fiscal months
 
 at end:
-  Write all new information to csvfile "Balance"
-  Open "Balance" when program exit
+  Append all new information to csvfile
