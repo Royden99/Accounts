@@ -4,3 +4,6 @@ months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 
 delimiter = ','
 linecount = 0
 MonthYear = "0"
+raw = []
+Assets = []
+Liabilities = []

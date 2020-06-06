@@ -10,13 +10,6 @@
 import var
 import decimal
 
-decimal.Context(prec=28, rounding=decimal.ROUND_HALF_EVEN, Emin=None, Emax=None, capitals=None, 
-        clamp=None, flags=None, traps=None)
-
-# Import entire csvfile
-with open("account_records.csv") as csvfile:
-    raw = csvfile.readlines()
- 
 def deci(string):
     """ Return arg 'string' converted to a 'decimal.Decimal()' object. """
     
@@ -27,47 +20,76 @@ def deci(string):
     return decimal.Decimal(string)
 
 def set_linecount(MoYr="current"): 
-    """ Var 'linecount' holds the number of some line in the raw file data.
-    This function positions 'linecount' at the top of the Fiscal Month specified by
-    arg 'MoYr', or the current one if none is specified. """
-    
-    global var.linecount 
+    """ This function reads lines of text from the csvfile into list 'var.raw[]', 
+    and/or positions 'var.linecount' at the top of the data.
+    The text is all the information inside the Fiscal Month specified by
+    arg 'MoYr', or the last Fiscal Month in the file if 'MoYr' == 'recent';
+    plus final balance info, etc from the previous Fiscal Month."""
 
-    if MoYr == "current":
-        while True:
-            if raw[var.linecount][0:3] in var.months:
-                break
-            else:
-                var.linecount -= 1
-    else:
-        # Go to the last line of the file and work back toward the beginning, looking for the
-        #   title in the first cell of each line
-        var.linecount = len(raw) - 1
-        if MoYr == "recent":    # this value allows for 'load_fiscal_month()'
-            while True:
-                if raw[var.linecount][0:3] in var.months:
-                    break
-                else:
-                    var.linecount -= 1
-        else:
-            try:
-                while True:
-                    title = build_cell(0)
-                    if title == MoYr:
-                        break
+    if MoYr != "current":   # We must first gather data from the csvfile before placing
+                            #   'var.linecount' at the top of it
+        with open("/home/royden99/Pyproj/Accounts/account_records.csv", 'r') as csvfile:
+
+            def read_info():
+                csvfile.seek(0,0)   # reset pointer to the beginning of the file
+                var.raw = []
+                read = False
+                look = False
+                for line in csvfile:                # use the titles to find the info we want; read it 
+                    if look == False:
+                        if line[0:3] in var.months:
+                            if build_cell(0, line) == f_m[1]:
+                                look = True
                     else:
-                        var.linecount -= 1
-            except IndexError:
-                print(" Could not find fiscal month titled '", MoYr, "'")
-                return 0
+                        if read == False:
+                            if line[0:14] == "Final balance:":
+                                read = True
+                                var.raw.append(line)
+                        else:
+                            var.raw.append(line)
 
-def build_cell(n):
-    """ This function builds and returns a string out of chars found in cell "n", on line
-    'linecount'.  A 'cell' being an area separated by delimiters. """
+            if MoYr == "recent":    # this value allows for 'load_fiscal_month()'
+                # Loop through csvfile twice, the first time finding out the titles of the last two
+                #   fiscal months, the second time reading all information from the 'Final balance'
+                #   of the second last month to the end of the file.
+                f_m = [0,0]
+                for line in csvfile:                # find titles of last two months in file
+                    if line[0:3] in var.months:
+                        f_m[1] = f_m[0]
+                        f_m[0] = build_cell(0, line)
+                read_info()
+
+            else:   # Same as above, except look for month titled ['MoYr'] instead of the last month
+                f_m = [0,0]
+                for line in csvfile:        # find titles of desired month & the one before it
+                    if line[0:3] in var.months:
+                        f_m[1] = f_m[0]
+                        f_m[0] = build_cell(0, line)
+                        if f_m[0] == MoYr:
+                            break
+                    if line == "":  # EOF -- ['MoYr'] could not be found
+                        print(" Could not find fiscal month titled '", MoYr, "'")
+                        csvfile.close()
+                        return 0
+                read_info()
+
+    # Place 'var.linecount' at the top of 'var.raw' data for this fiscal month
+    var.linecount = 0
+    while True:
+        if var.raw[var.linecount][0:3] in var.months:
+            break
+        else:
+            var.linecount += 1
+
+def build_cell(n, line="default"):
+    """ This function builds and returns a string out of chars found in cell "n", on the line
+    specified ('var.raw[var.linecount]' is default; otherwise, 'line' could be any string).
+    A 'cell' being an area separated by delimiters. """
 
     cellcount = 0
     charbuff = []
-    line = raw[var.linecount]
+    if line == "default":
+        line = var.raw[var.linecount]
 
     for char in line:
         # find desired cell
@@ -96,8 +118,6 @@ def build_cell(n):
 def read_transactions(n):
     """ Read transaction info into the second entry ([1]) of all accounts listed under arg
     'n' """
-    
-    global var.linecount
 
     for acnt in n:
         set_linecount()
@@ -125,9 +145,7 @@ def read_transactions(n):
 def calc_bal(account):
     """ This function, for the 'account' specified, looks at last month's final balance
     and all of this month's transactions, and updates the account with the new balance. 
-    Arg 'account' must be an item in list 'Assets' or 'Liabilities.' """
-    
-    global var.linecount
+    Arg 'account' must be an item in list 'var.Assets' or 'var.Liabilities.' """
 
     # find previous balance
     set_linecount()
@@ -138,7 +156,7 @@ def calc_bal(account):
             account[5] = bal
             break
 
-   # add all (+ve and -ve) transactions to 'bal'
+   # find new balance: add all (+ve and -ve) transactions to 'bal'
     for item in account[1]:
         trans = deci(item[0])
         bal += trans
@@ -147,16 +165,13 @@ def calc_bal(account):
 
 # MAIN FUNCTION
 def load_fiscal_month(MoYr="recent"):
-    """This function loads raw data from the csvfile into two large lists
-    'Assets' and 'Liabilities.' This data is from the Fiscal Month titled 'MoYr'
-    in the csvfile. """
+    """This function loads raw data (account names, transactions, tags, and balances)
+    from the csvfile into two large lists 'var.Assets' and 'var.Liabilities.' This data is from
+    the Fiscal Month titled 'MoYr' in the csvfile. """
 
-    global var.linecount
-    global var.MonthYear
-    
     # read title of fiscal month
     if set_linecount(MoYr) == 0:
-        return 0
+        return 0                    # This happens if the operation failed for some reason
 
     var.MonthYear = build_cell(0)
 
@@ -177,12 +192,12 @@ def load_fiscal_month(MoYr="recent"):
             break
         cellcount += 1
 
-    # ACCOUNTS: two lists--'Assets' & 'Liabilities'--each containing individual accounts
+    # ACCOUNTS: two lists--'var.Assets' & 'var.Liabilities'--each containing individual accounts
     #    - each account consists of the following info:
     #       [name, [transactions & tags], transaction column, tag column, final balance, previous balance]
 
-    Assets = []
-    Liabilities = []
+    var.Assets = []
+    var.Liabilities = []
 
     # find existing accounts and register them, including name and column info
     var.linecount += 1
@@ -194,25 +209,30 @@ def load_fiscal_month(MoYr="recent"):
        
         if nam != '':
             if cellcount >= account_type['liabilities']:
-                Liabilities.append([nam, [], cellcount, (cellcount + 1), 0, 0])
+                var.Liabilities.append([nam, [], cellcount, (cellcount + 1), 0, 0])
             elif cellcount >= account_type['assets']:
-                Assets.append([nam, [], cellcount, (cellcount + 1), 0, 0])
+                var.Assets.append([nam, [], cellcount, (cellcount + 1), 0, 0])
 
         cellcount += 1
 
     # fill in 'transactions & tags' as follows: [[transaction1, tag1], [transaction2, tag2], ...]
-    read_transactions(Assets)
-    read_transactions(Liabilities)
+    read_transactions(var.Assets)
+    read_transactions(var.Liabilities)
 
     # calculate 'final balance'
-    for acnt in Assets:
+    for acnt in var.Assets:
         calc_bal(acnt)
-    for acnt in Liabilities:
+    for acnt in var.Liabilities:
         calc_bal(acnt)
 
 
 # MORE FUNCTIONS
 #=========================================================================================
+
+# Save:  rewrite CFM with current data
+def save_changes():
+    set_linecount(var.MonthYear)    # navigate to CFM title
+    
 
 # display accounts in readable format
 def display(account):
@@ -227,3 +247,13 @@ def display(account):
     print("\n=============================================================")
 
 
+def show_accounts():
+
+        # Display names of accounts from CFM
+        print(" Current Fiscal Month == ", var.MonthYear)
+        print("\nAssets:")
+        for account in var.Assets:
+            print("\t", account[0])
+        print("\nLiabilities:")
+        for account in var.Liabilities:
+            print("\t", account[0])

@@ -3,38 +3,43 @@
 
 import decimal
 import var
-from INIT import *
-   
-load_fiscal_month()
+import func as f
+
+decimal.Context(prec=28, rounding=decimal.ROUND_HALF_EVEN, Emin=None, Emax=None, capitals=None, 
+        clamp=None, flags=None, traps=None)
+
+print("\n\n\t\t\tACCOUNTS\n============================================================")
+print("\t   Financial bookkeeping for the nerd\n\n")
+
+f.load_fiscal_month()
+f.show_accounts()
 
 # At this point we have accumulated the following data:
 #   * MonthYear == the Current Fiscal Month i.e. CFM
 #       e.g. "January 2020"
 # 
-#   * Lists "Assets[]" and "Liabilities[]" each containing a number of accounts
+#   * Lists "var.Assets[]" and "var.Liabilities[]" each containing a number of accounts
 #       and info about them
 #
 #       - syntax:
-#           Assets == [[account0], [account1], ... [account'n']]
+#           var.Assets == [[account0], [account1], ... [account'n']]
 #
 #           [account0] == [name(str), [transactions & tags](str), transaction column(int),
 #               tag column(int), final balance(decimal), previous balance(decimal)]
 #
 #           [transactions & tags] == [[trans0, tag0], [trans1, tag1], ... [trans'n', tag'n']]
 
-print("\n\n Current Fiscal Month == ", var.MonthYear)
-
 exit_words = ["quit", "q", "exit"]
 
 while True:
     # Command Line
-    cmd = input(">>> ")
+    cmd = input("\nacnts>> ")
     
     # navigate Fiscal Months
     # Syntax: "[month]_[year]"
     if cmd[0:3] in var.months:
-        load_fiscal_month(cmd)
-        print(" Current Fiscal Month == ", var.MonthYear)
+        f.load_fiscal_month(cmd)
+        f.show_accounts()
 
     # create new Fiscal Month
     # delete CFM (Current Fiscal Month)
@@ -50,6 +55,6 @@ while True:
     elif cmd in exit_words:
         break
     else:
-        print("unknown command: ", cmd)
+        print("unknown command: ", cmd)    
 
 quit()
