@@ -33,7 +33,7 @@ exit_words = ["quit", "q", "exit"]
 
 while True:
 
-    f.save_to_raw()
+#    f.save_to_raw()
     
     # Command Line
     month = var.MonthYear[:3] + var.MonthYear[-4:]
