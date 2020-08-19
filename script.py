@@ -12,7 +12,7 @@ print("\n\n\t\t\tACCOUNTS\n=====================================================
 print("\t   Financial bookkeeping for the nerd\n\n")
 
 f.load_fiscal_month()
-f.show_accounts()
+f.show_statement()
 
 # At this point we have accumulated the following data:
 #   * MonthYear == the Current Fiscal Month i.e. CFM
@@ -32,29 +32,52 @@ f.show_accounts()
 exit_words = ["quit", "q", "exit"]
 
 while True:
-    # Command Line
-    cmd = input("\nacnts>> ")
+
+    f.save_to_raw()
     
-    # navigate Fiscal Months
-    # Syntax: "[month]_[year]"
-    if cmd[0:3] in var.months:
+    # Command Line
+    month = var.MonthYear[:3] + var.MonthYear[-4:]
+    cmd = input("\n{}\{}\>> ".format(month, var.CA))
+    
+    # navigate Fiscal Months 
+    if cmd[0:3] in var.months:      # syntax '[month] [year]'
+        var.CA = ""
         f.load_fiscal_month(cmd)
-        f.show_accounts()
+        f.show_statement()
 
     # create new Fiscal Month
     # delete CFM (Current Fiscal Month)
     #   IN CURRENT FISCAL MONTH:
+    
     # navigate accounts
+    elif cmd in var.account_names:  # syntax '[account name]'
+        var.CA = cmd
+        # display account info
+        for acnt in var.Assets:
+            if acnt[0] == cmd:
+                f.display(acnt)
+                break
+        for acnt in var.Liabilities:
+            if acnt[0] == cmd:
+                f.display(acnt)
+                break
+
     # create new account
     # delete CA (Current Account)
+    
     # display statement
+    elif cmd == 'ls':
+        f.show_statement()
+
     #   IN CURRENT ACCOUNT:
     # add transaction
     # delete an existing transaction
+
     # exit program
     elif cmd in exit_words:
         break
+    # unknown command
     else:
-        print("unknown command: ", cmd)    
+        print(" unknown command: ", cmd)    
 
 quit()
