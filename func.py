@@ -269,9 +269,6 @@ def load_fiscal_month(MoYr="recent"):
 #               2)rewrite CFM data in csvfile with contents of 'var.raw'
 def save_to_raw():
 
-    for line in var.raw:
-        print(line)
-
     # keep 'final balance' info from previous month, but delete everything from CFM
     i = 0
     for line in var.raw:
@@ -324,7 +321,6 @@ def save_to_raw():
 
     line.append('\n')
     var.raw.append(''.join(line))
-    var.raw.append(',\n')  # (also a blank line)
 
     # place transactions & tags
     length = 0  # find the length of the longest list of transactions
