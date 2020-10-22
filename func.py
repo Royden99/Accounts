@@ -9,6 +9,7 @@
 # Transactions are handled using the decimal module to avoid the error associated with floats
 import var
 import decimal
+import os
 
 def deci(string):
     """ Return arg 'string' converted to a 'decimal.Decimal()' object. """
@@ -266,8 +267,8 @@ def load_fiscal_month(MoYr="recent"):
 #=========================================================================================
 
 # Save changes: 1)rewrite 'var.raw' with all data in 'Assets', 'Liabilities', & 'statement'
-#               2)rewrite CFM data in csvfile with contents of 'var.raw'
-def save_to_raw():
+#               2)replace CFM data in csvfile with contents of 'var.raw'
+def rewrite_raw():
 
     # keep 'final balance' info from previous month, but delete everything from CFM
     i = 0
@@ -372,10 +373,73 @@ def save_to_raw():
             var.raw.append(',\n')
         line.append(",{},{}\n".format(key, value))
         var.raw.append(''.join(line))
-    
-    with open("/home/royden99/Pyproj/Accounts/debugfile.csv", 'w') as csvfile:
+
+
+def rewrite_csv():
+    """ Replace csvfile content with 'var.raw' """
+
+    def find_prev_month():
+        """ Identify the MonthYear before the current one """
+       
+        months = ['January ', 'February ', 'March  ', 'April ', 'May ', 'June ',
+                'July ', 'August ', 'September ', 'October ', 'November ', 'December ']
+        
+        year = var.MonthYear[(len(var.MonthYear) - 4):]
+
+        i = 0
+        while var.MonthYear[:3] != var.months[i]:
+            i += 1
+        if i > 0:
+            monthyear = months[i - 1] + year
+        else:   # January
+            monthyear = 'December ' + str(int(year) - 1)
+
+        return monthyear
+
+    prev_month = find_prev_month()
+
+    # Create a temporary text file
+    with open('temp.txt', 'w') as temp:
+
+    # Copy lines from csvfile into text file
+        month_found = False
+        with open('account_records.csv', 'r') as csvfile:
+            for line in csvfile:
+                
+        # Find insert location for new data
+                if month_found == False:
+                    if line[:3] in var.months:
+                        if build_cell(0, line) == prev_month:
+                            month_found = True
+                else: 
+                    if build_cell(0, line) == "Final balance:":
+                        break
+                temp.write(line)
+
+    # Copy 'var.raw' into text file
         for line in var.raw:
-            csvfile.write(line)
+            temp.write(line)
+        temp.write("\n\n")
+
+    # Copy remaining lines from csvfile into text file, if any exist
+        month_found = False
+        write = False
+        with open('account_records.csv', 'r') as csvfile:
+            for line in csvfile:
+
+        # Find beginning of remaining data
+                if write == False:
+                    if line[:3] in var.months:
+                        if month_found == False:
+                            if build_cell(0, line) == var.MonthYear:
+                                month_found = True
+                        else:
+                            write = True
+                else:
+                    temp.write(line)
+
+    # Replace csvfile with text file
+    os.replace('temp.txt', 'account_records.csv')
 
 
 # display accounts in readable format
