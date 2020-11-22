@@ -33,8 +33,6 @@ exit_words = ["quit", "q", "exit"]
 
 while True:
 
-    f.save_to_raw()
-    
     # Command Line
     month = var.MonthYear[:3] + var.MonthYear[-4:]
     cmd = input("\n{}\{}\>> ".format(month, var.CA))
@@ -45,6 +43,10 @@ while True:
         f.load_fiscal_month(cmd)
         f.show_statement()
 
+    #debug
+    elif cmd == ' ':
+        f.rewrite_csv()
+
     # create new Fiscal Month
     # delete CFM (Current Fiscal Month)
     #   IN CURRENT FISCAL MONTH:
@@ -52,16 +54,17 @@ while True:
     # navigate accounts
     elif cmd in var.account_names:  # syntax '[account name]'
         var.CA = cmd
-        # display account info
         for acnt in var.Assets:
             if acnt[0] == cmd:
-                f.display(acnt)
+                f.display(acnt)         # display account info
+                var.trans = acnt[1]     # load transaction list for easy access
                 break
         for acnt in var.Liabilities:
             if acnt[0] == cmd:
-                f.display(acnt)
+                f.display(acnt)         # display account info
+                var.trans = acnt[1]     # load transaction list for easy access
                 break
-
+        
     # create new account
     # delete CA (Current Account)
     
@@ -70,8 +73,21 @@ while True:
         f.show_statement()
 
     #   IN CURRENT ACCOUNT:
-    # add transaction
+
+    # add a new transaction
+    elif cmd[0] == '+' or cmd[0] == '-':
+        if var.CA != "":
+            prefix = cmd[0]
+            cursor
+        else:
+            print(" Please select an account before adding a transaction. ")
+
     # delete an existing transaction
+    
+    # save changes
+    elif cmd == 'save':
+        f.rewrite_raw()
+        f.rewrite_csv()
 
     # exit program
     elif cmd in exit_words:
