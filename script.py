@@ -54,16 +54,17 @@ while True:
     # navigate accounts
     elif cmd in var.account_names:  # syntax '[account name]'
         var.CA = cmd
-        # display account info
         for acnt in var.Assets:
             if acnt[0] == cmd:
-                f.display(acnt)
+                f.display(acnt)         # display account info
+                var.trans = acnt[1]     # load transaction list for easy access
                 break
         for acnt in var.Liabilities:
             if acnt[0] == cmd:
-                f.display(acnt)
+                f.display(acnt)         # display account info
+                var.trans = acnt[1]     # load transaction list for easy access
                 break
-
+        
     # create new account
     # delete CA (Current Account)
     
@@ -73,9 +74,13 @@ while True:
 
     #   IN CURRENT ACCOUNT:
 
-    # add transaction
-#    elif cmd[0] == '+' or cmd[0] == '-':
-
+    # add a new transaction
+    elif cmd[0] == '+' or cmd[0] == '-':
+        if var.CA != "":
+            prefix = cmd[0]
+            cursor
+        else:
+            print(" Please select an account before adding a transaction. ")
 
     # delete an existing transaction
     

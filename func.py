@@ -269,8 +269,9 @@ def load_fiscal_month(MoYr="recent"):
 # Save changes: 1)rewrite 'var.raw' with all data in 'Assets', 'Liabilities', & 'statement'
 #               2)replace CFM data in csvfile with contents of 'var.raw'
 def rewrite_raw():
+    """ Populate 'var.raw' with current data. Format it for the csvfile. """
 
-    # keep 'final balance' info from previous month, but delete everything from CFM
+    # keep 'final balance' info from previous month, but delete everything else from CFM
     i = 0
     for line in var.raw:
         if line[:3] in var.months:
@@ -376,7 +377,7 @@ def rewrite_raw():
 
 
 def rewrite_csv():
-    """ Replace csvfile content with 'var.raw' """
+    """ Replace CFM csvfile content with 'var.raw' """
 
     def find_prev_month():
         """ Identify the MonthYear before the current one """

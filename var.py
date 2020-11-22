@@ -24,7 +24,9 @@ Liabilities = []
 #           [transactions & tags] == [[trans0, tag0], [trans1, tag1], ... [trans'n', tag'n']]
 
 
-CA = ""                 # Current Account in CFM
+CA = {name:"", label:"",                  # Current Account in CFM
+
+trans = []              # the list of transactions from CA
 
 account_names = []      # names of accounts in CFM
 
