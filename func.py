@@ -16,12 +16,17 @@ def deci(string):
     
     # format transaction strings
     if ' ' in string:    
-        string = string.replace(' ', '', 1)
+        string = string.replace(' ', '')
     
-    return decimal.Decimal(string)
+    try:
+        return decimal.Decimal(string)
+    except decimal.InvalidOperation:
+        print("\tError:\tCould not process transaction '{}' for the month of {}".format(string, var.MonthYear))
+        quit()
 
 def set_linecount(MoYr="current"): 
-    """ This function reads lines of text from the csvfile into list 'var.raw[]', 
+    """ Place 'var.linecount' at the line with CFM title.
+        This function reads lines of text from the csvfile into list 'var.raw[]', 
     and/or positions 'var.linecount' at the top of the data.
     The text is all the information inside the Fiscal Month specified by
     arg 'MoYr', or the last Fiscal Month in the file if 'MoYr' == 'recent';
@@ -29,7 +34,7 @@ def set_linecount(MoYr="current"):
 
     if MoYr != "current":   # We must first gather data from the csvfile before placing
                             #   'var.linecount' at the top of it
-        with open("/home/royden99/Pyproj/Accounts/account_records.csv", 'r') as csvfile:
+        with open("account_records.csv", 'r') as csvfile:
 
             def read_info():
                 csvfile.seek(0,0)   # reset pointer to the beginning of the file
@@ -39,19 +44,19 @@ def set_linecount(MoYr="current"):
                 end = False
                 i = 0
                 for line in csvfile:                # use the titles to find the f_m we want; start reading lines 
-                    if look == False:
+                    if look is False:
                         if line[0:3] in var.months:
                             if build_cell(0, line) == f_m[1]:
                                 look = True
-                    elif read == False:
+                    elif read is False:
                         if line[0:14] == "Final balance:":
                             read = True
                             var.raw.append(line)
-                    elif end == False:
+                    elif end is False:
                         if line[0:3] in var.months:
                             if i == 1:
-                                end = True              # stop reading lines when we come to the next f_m
-                            else:
+                                end = True          # stop reading lines when we come to the end of next f_m
+                            else:                   #   (or end of csvfile)
                                 i += 1
                                 var.raw.append(line)
                         else:
@@ -84,7 +89,7 @@ def set_linecount(MoYr="current"):
                         return 0
                 read_info()
 
-    # Place 'var.linecount' at the top of 'var.raw' data for this fiscal month
+    # Place 'var.linecount' at the top of 'var.raw' data for current fiscal month
     var.linecount = 0
     while True:
         if var.raw[var.linecount][0:3] in var.months:
@@ -143,7 +148,7 @@ def read_transactions(n):
                 break
 
             # read transactions until two consecutive empty cells in the 'tag' column are found
-            if tag != '' or next_tag != '':
+            if (tag != '' and tag is not None) or (next_tag != '' and next_tag is not None):
                 entry = [] 
                 entry.append(trans)
                 entry.append(tag)
@@ -151,6 +156,10 @@ def read_transactions(n):
 
             else:
                 break
+        
+        # do not allow for a completely empty list of transactions
+        if acnt[1] == []:
+            acnt[1] = [['','']]
 
 def calc_bal(account):
     """ This function, for the 'account' specified, looks at last month's final balance
@@ -182,7 +191,7 @@ def load_fiscal_month(MoYr="recent"):
     from the csvfile into two large lists 'var.Assets' and 'var.Liabilities.' This data is from
     the Fiscal Month titled 'MoYr' in the csvfile. """
 
-    # read title of fiscal month
+    # read data from csvfile into python list 'var.raw'
     if set_linecount(MoYr) == 0:
         return 0                    # This happens if the operation failed for some reason
 
@@ -256,35 +265,131 @@ def load_fiscal_month(MoYr="recent"):
     while True:
         try:
             key = build_cell(1)
-            if key != "":
+            if key != "" and key is not None:
                 var.statement[key] = build_cell(2)
             var.linecount += 1
         except IndexError:
             break
 
+    # verify statement
+    calc_statement(double_check='yes')
+
 
 # MORE FUNCTIONS
 #=========================================================================================
 
+def calc_statement(transaction="N/A", account="N/A", double_check='no'):
+    """ Calculate CFM statement
+        scenarios:
+            * Immediately after 'load_fiscal_month' - calculate statement in order to check existing numbers
+            * After every new or edited transaction - recalculate using only the new transaction & balance
+            """
+    # Calculate values
+    revenue = deci('0')
+    expenses = deci('0')
+    net_worth = deci('0')
+    
+    if transaction == "N/A":
+        for acnt in var.Assets:
+            for trans in acnt[1]:
+                if '+' in trans[0]:
+                    if trans[1][:2] == 'to ' and trans[1][3:] in var.account_names:
+                        # transaction is a transfer between accounts
+                        pass
+                    else:
+                        revenue += deci(trans[0])
+                elif '-' in trans[0]:
+                    if trans[1][:4] == 'from ' and trans[1][5:] in var.account_names:
+                        pass
+                    else:
+                        expenses += deci(trans[0])
+        for acnt in var.Assets:
+            net_worth += acnt[4]
+        for acnt in var.Liabilities:
+            net_worth += acnt[4]
+        net_income = revenue + expenses
+    else:
+        # decide whether transaction is Asset or Liability
+        # if Asset:
+            # decide whether transaction is Revenue or Expense
+        # add transaction to net worth
+        pass
+
+    # Check existing values
+    for k, v in var.statement.items():
+        # is it in proper format?
+        try:
+            value = deci(v)
+        except decimal.InvalidOperation:
+            value = deci('0')
+
+        # does it match the recalculated value?
+        for label, recalculated_value in {'Revenue':revenue, 'Expenses':expenses,\
+                'Net income':net_income, 'Net worth':net_worth}.items():
+            if label in k:
+                if double_check != 'no':
+                    if value != recalculated_value:
+                        # check with the user before rewriting.
+                        rewrite = input("\n Monthly {} for {} does not match existing values.\
+Fix automatically? [y/n]\n ('n' will exit program without changing) >>".format(label, var.MonthYear))
+                        if rewrite == 'n' or rewrite == 'no':
+                            quit()
+                    else:
+                        break
+                value = recalculated_value
+        var.statement[k] = str(value)
+                
+
+def find_month(direction):
+    """ Identify the MonthYear before or after the current one """
+   
+    months = ['January ', 'February ', 'March  ', 'April ', 'May ', 'June ',
+            'July ', 'August ', 'September ', 'October ', 'November ', 'December ']
+    
+    year = var.MonthYear[(len(var.MonthYear) - 4):]
+
+    i = 0
+    while var.MonthYear[:3] != var.months[i]:
+        i += 1
+
+    if direction == 'prev':
+        if i > 0:
+            monthyear = months[i - 1] + year
+        else:   # January
+            monthyear = 'December ' + str(int(year) - 1)
+
+    elif direction == 'next':
+        if i < 11:
+            monthyear = months[i + 1] + year
+        else:   # December
+            monthyear = 'January ' + str(int(year) + 1)
+
+    return monthyear
+
+
 # Save changes: 1)rewrite 'var.raw' with all data in 'Assets', 'Liabilities', & 'statement'
 #               2)replace CFM data in csvfile with contents of 'var.raw'
-def rewrite_raw():
+def rewrite_raw(new_month = False):
     """ Populate 'var.raw' with current data. Format it for the csvfile. """
 
-    # keep 'final balance' info from previous month, but delete everything else from CFM
-    i = 0
-    for line in var.raw:
-        if line[:3] in var.months:
-            break
-        i += 1
-    var.raw = var.raw[0:i]
-
+    if new_month is False:
+        # keep 'final balance' info from previous month, but delete everything else from CFM
+        i = 0
+        for line in var.raw:
+            if line[:3] in var.months:
+                break
+            i += 1
+        var.raw = var.raw[0:i]
+    else:
+        # var.raw[] should be a clean slate
+        var.raw = []
+    
     # CFM title
     var.raw.append('{},\n'.format(var.MonthYear))
 
     # place 'ASSETS' & 'LIABILITIES' headings
     line = []
-    assets = var.Assets[0][2]           # transaction column of the first account in 'Assets'
+    assets = var.Assets[0][2]
     liabilities = var.Liabilities[0][2]
     i = 0
     while True:
@@ -316,20 +421,16 @@ def rewrite_raw():
     # place account names
     line = []
     cellcount = 0
-    for account in var.Assets:
-        cellcount, line = add_info(account[0], line, cellcount, account[2])
-    for account in var.Liabilities:
+    for account in [(chain) for list_ in (var.Assets, var.Liabilities) for chain in list_]:
         cellcount, line = add_info(account[0], line, cellcount, account[2])
 
     line.append('\n')
     var.raw.append(''.join(line))
 
     # place transactions & tags
-    length = 0  # find the length of the longest list of transactions
-    for account in var.Assets:
-        if len(account[1]) > length:
-            length = len(account[1])
-    for account in var.Liabilities:
+    length = 0  
+        # find the length of the longest list of transactions
+    for account in [(chain) for list_ in (var.Assets, var.Liabilities) for chain in list_]:
         if len(account[1]) > length:
             length = len(account[1])
     i = 0
@@ -376,68 +477,63 @@ def rewrite_raw():
         var.raw.append(''.join(line))
 
 
-def rewrite_csv():
+def rewrite_csv(new_month = False, del_month = False):
     """ Replace CFM csvfile content with 'var.raw' """
 
-    def find_prev_month():
-        """ Identify the MonthYear before the current one """
-       
-        months = ['January ', 'February ', 'March  ', 'April ', 'May ', 'June ',
-                'July ', 'August ', 'September ', 'October ', 'November ', 'December ']
-        
-        year = var.MonthYear[(len(var.MonthYear) - 4):]
-
-        i = 0
-        while var.MonthYear[:3] != var.months[i]:
-            i += 1
-        if i > 0:
-            monthyear = months[i - 1] + year
-        else:   # January
-            monthyear = 'December ' + str(int(year) - 1)
-
-        return monthyear
-
-    prev_month = find_prev_month()
+    prev_month = find_month('prev')
 
     # Create a temporary text file
     with open('temp.txt', 'w') as temp:
 
-    # Copy lines from csvfile into text file
-        month_found = False
+        # Copy lines from csvfile into text file
         with open('account_records.csv', 'r') as csvfile:
+            
+            # Find insert location for new data
+            i = 0
+            month_found = False
+            finish = False
             for line in csvfile:
-                
-        # Find insert location for new data
-                if month_found == False:
+                if month_found is False:
                     if line[:3] in var.months:
                         if build_cell(0, line) == prev_month:
                             month_found = True
                 else: 
                     if build_cell(0, line) == "Final balance:":
-                        break
+                        if new_month is False:
+                            break
+                        else:
+                            finish = True
+                            prev_line = line
+                    elif finish == True:
+                        if build_cell(1, line) == build_cell(1, prev_line):
+                            temp.write(line)
+                            break
+                        prev_line = line
+
                 temp.write(line)
 
-    # Copy 'var.raw' into text file
+        # Copy 'var.raw' into text file
         for line in var.raw:
             temp.write(line)
         temp.write("\n\n")
 
-    # Copy remaining lines from csvfile into text file, if any exist
-        month_found = False
-        write = False
-        with open('account_records.csv', 'r') as csvfile:
-            for line in csvfile:
+        # Copy remaining lines from csvfile into text file, if any exist
+        if del_month is False:
+            month_found = False
+            write = False
+            with open('account_records.csv', 'r') as csvfile:
+                for line in csvfile:
 
-        # Find beginning of remaining data
-                if write == False:
-                    if line[:3] in var.months:
-                        if month_found == False:
-                            if build_cell(0, line) == var.MonthYear:
-                                month_found = True
-                        else:
-                            write = True
-                else:
-                    temp.write(line)
+                    # Find beginning of remaining data
+                    if write is False:
+                        if line[:3] in var.months:
+                            if month_found is False:
+                                if build_cell(0, line) == var.MonthYear:
+                                    month_found = True
+                            else:
+                                write = True
+                    else:
+                        temp.write(line)
 
     # Replace csvfile with text file
     os.replace('temp.txt', 'account_records.csv')
@@ -448,7 +544,7 @@ def display(account):
     """Display the information in the specified 'account' that the user wants to see:
     1) Account name, 2) Previous balance, 3) Transactions & tags, and 4) Final balance."""
     
-    print("\n\n\n\t{}\n\t{}\n\n prev. balance:\t{}\n".format(account[0],
+    print("\n\n\n\t{}\n\t{}\n\n prev. balance:\t{}".format(account[0],
         ''.ljust(len(account[0]),'='), account[5]))
     for item in account[1]:
         print(item[0].rjust(13), '\t', item[1].ljust(True))
@@ -456,7 +552,7 @@ def display(account):
     print("\n =============================================================")
 
 
-def show_statement():
+def display_statement():
 
         # Display names of accounts from CFM
         print("\n Assets:")

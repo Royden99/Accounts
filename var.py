@@ -1,5 +1,7 @@
 # Global variables here
 
+CFM_saved = True       # flag for whether CFM was modified without saving
+
 months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 delimiter = ','         # separator in csvfile
@@ -8,7 +10,9 @@ linecount = 0           # i.e. "cursor"; tracks position in 'raw'
 
 MonthYear = "0"         # Current Fiscal Month (CFM)
 
-raw = []                # raw data (lines) loaded from csvfile
+most_recent_month = ""  # the last fiscal month stored in the csvfile
+
+raw = []                # raw data (lines of text) loaded from csvfile
 
 Assets = []             # Accounts data in CFM
 Liabilities = []
@@ -23,11 +27,9 @@ Liabilities = []
 #
 #           [transactions & tags] == [[trans0, tag0], [trans1, tag1], ... [trans'n', tag'n']]
 
-
-CA = {name:"", label:"",                  # Current Account in CFM
-
-trans = []              # the list of transactions from CA
+CA = {'name':"", 'type':"", 'location':0}               # Current Account in CFM
 
 account_names = []      # names of accounts in CFM
 
 statement = {}          # final statement data in CFM
+                        # {revenue, expenses, net income, net worth}

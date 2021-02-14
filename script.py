@@ -1,5 +1,5 @@
 # MODULE 'SCRIPT':
-#   Handle user input, responding with data and functions loaded from 'INIT.py'
+#   Handle user input, responding with data and functions provided by 'func' and 'var'
 
 import decimal
 import var
@@ -8,11 +8,22 @@ import func as f
 decimal.Context(prec=28, rounding=decimal.ROUND_HALF_EVEN, Emin=None, Emax=None, capitals=None, 
         clamp=None, flags=None, traps=None)
 
+def check_for_unsaved_changes():
+    if var.CFM_saved == False:
+        confirm = input(' You have unsaved changes. Save automatically before continuing?\
+\n [y/n] >>')
+        if confirm == 'y' or confirm == 'yes':
+            f.rewrite_raw()
+            f.rewrite_csv()
+        var.CFM_saved = True
+
 print("\n\n\t\t\tACCOUNTS\n============================================================")
 print("\t   Financial bookkeeping for the nerd\n\n")
 
 f.load_fiscal_month()
-f.show_statement()
+var.most_recent_month = var.MonthYear
+
+f.display_statement()
 
 # At this point we have accumulated the following data:
 #   * MonthYear == the Current Fiscal Month i.e. CFM
@@ -35,63 +46,185 @@ while True:
 
     # Command Line
     month = var.MonthYear[:3] + var.MonthYear[-4:]
-    cmd = input("\n{}\{}\>> ".format(month, var.CA))
-    
-    # navigate Fiscal Months 
-    if cmd[0:3] in var.months:      # syntax '[month] [year]'
-        var.CA = ""
-        f.load_fiscal_month(cmd)
-        f.show_statement()
+    cmd = input("\n{}\{}\>> ".format(month, var.CA['name']))
 
+    # The following conditionals interperet the commands of the user.
+     
     #debug
-    elif cmd == ' ':
-        f.rewrite_csv()
+    if cmd == ' ':
+        print('current month -- ',var.MonthYear)
+        print('latest month  -- ',var.most_recent_month)
+        
+    # navigate Fiscal Months 
+    elif cmd[0:3] in var.months:      # syntax '[month] [year]'
+        var.CA = {'name':"", 'type':"", 'location':0}
+        check_for_unsaved_changes()
+        f.load_fiscal_month(cmd)
+        f.display_statement()
 
     # create new Fiscal Month
-    # delete CFM (Current Fiscal Month)
+    elif cmd == "new month":
+        # ensure that CFM is the most recent one
+        check_for_unsaved_changes()
+        if var.MonthYear != var.most_recent_month:
+            f.load_fiscal_month()
+
+        # replace 'var.MonthYear' with the next month
+        var.MonthYear = f.find_month('next')
+
+        # zero account transaction data in Assets and Liabilities, replace prev_balance with final_balance
+        #   (final_balance stays the same)
+        for account in [(chain) for list_ in (var.Assets, var.Liabilities) for chain in list_]:
+            account[1] = [['', '']]
+            account[5] = account[4]
+
+        # calculate statement
+        f.calc_statement()
+
+        # save current data to a new month, empty of transactions, at the end of csvfile
+        f.rewrite_raw(new_month = True)
+        f.rewrite_csv(new_month = True)
+
+        var.most_recent_month = var.MonthYear
+        f.display_statement()
+
+    # delete CFM (only the most recent one)
+    elif cmd == 'del month':
+        if var.MonthYear != var.most_recent_month:
+            print(" Sorry, you can only delete the latest Month in the file.")
+            continue
+        else:
+            check_for_unsaved_changes()
+
+            # load the second most recent fiscal month
+            f.load_fiscal_month(f.find_month('prev'))
+            
+            # rewrite csvfile, simply leaving out any data that used to follow
+            f.rewrite_csv(del_month = True)
+            
+            var.most_recent_month = var.MonthYear
+            f.display_statement()
+
     #   IN CURRENT FISCAL MONTH:
     
     # navigate accounts
+    # (Currently the only method for navigation is to type the name of the account into the command line.
+    #   Account names are apparent to the user via the initial 'f.display_statement()' or the 'ls' command.)
     elif cmd in var.account_names:  # syntax '[account name]'
-        var.CA = cmd
-        for acnt in var.Assets:
+        var.CA['name'] = cmd
+        for i, acnt in enumerate(var.Assets):
             if acnt[0] == cmd:
+                var.CA['type'] = "asset"
+                var.CA['location'] = i
                 f.display(acnt)         # display account info
-                var.trans = acnt[1]     # load transaction list for easy access
                 break
-        for acnt in var.Liabilities:
+        for i, acnt in enumerate(var.Liabilities):
             if acnt[0] == cmd:
+                var.CA['type'] = "liability"
+                var.CA['location'] = i
                 f.display(acnt)         # display account info
-                var.trans = acnt[1]     # load transaction list for easy access
                 break
         
-    # create new account
-    # delete CA (Current Account)
+    # create new account (only in most recent month)
+    elif cmd == 'new account':
+        # ascertain that CFM is most recent month
+        # user decide whether account is an asset or liability
+        # user provide account name
+        # populate new account information -- name, trans&tags, trans_col, tag_col,
+        #   final_bal, and prev_bal
+        # if new account is an asset, then all liabilities accounts are going to be 
+        #   'shoved over' and their lateral (column) placement needs to be re-figured
+        # append new account into respective list of accounts; update 'var.account_names'
+        # update 'var.CA' to reflect the new account; display it
+        var.CFM_saved = False
+        pass
+    # delete current account
+    elif cmd[:3] == 'del' and var.CA['name'] != "":
+        # double-check with user
+        # ascertain that CFM is most recent month
+        # change column data for any accounts to the right of the one being deleted,
+        #   to bring them in and fill the gap
+        # delete account info from its respective list
+        # reset var.CA to nothing; display statement 
+        var.CFM_saved = False
+        pass
     
-    # display statement
+    # display CFM statement
     elif cmd == 'ls':
-        f.show_statement()
+        f.display_statement()
 
     #   IN CURRENT ACCOUNT:
 
     # add a new transaction
-    elif cmd[0] == '+' or cmd[0] == '-':
-        if var.CA != "":
+    elif len(cmd) > 0 and (cmd[0] == '+' or cmd[0] == '-'):
+        if var.CA['name'] != "":        # ensure that an account is selected
             prefix = cmd[0]
-            cursor
+
+            try:    # check that the transaction is valid
+                trans = str(decimal.Decimal(cmd))
+                tag = input(" Tag: ")   # prompt the user for a 'tag' - description of the transaction
+                
+                # Add the transaction to the Current Account
+                def insert(transaction, account):
+                    """ Insert 'transaction' into the appropriate list of transactions & tags.
+                    Then, recalculate the final balance. """
+                    if prefix == '-':
+                        # insert transaction at the end of existing expenses, if any
+                        if len(account[1]) == 1:
+                            account[1].append([transaction, tag])
+                        else:
+                            for i in range(1, len(account[1]), 1):
+                                if account[1][i] == ['', '']:
+                                    account[1].insert(i, [transaction, tag])
+                                    break
+                                elif account[1][i][0][0] == '+':
+                                    account[1].insert(i, ['', ''])
+                                    account[1].insert(i, [transaction, tag])
+                                    break
+                    elif prefix == '+':
+                        # insert transaction at the very end of the list
+                        try:
+                            if account[1][len(account[1])-1][0][0] == '-':
+                                account[1].append(['', ''])
+                        except IndexError:
+                            pass
+                        account[1].append(['+'+transaction, tag])
+
+                    # add transaction to final balance
+                    account[4] += f.deci(transaction)
+                
+                if var.CA['type'] == 'asset':
+                    insert(trans, var.Assets[var.CA['location']])
+                elif var.CA['type'] == 'liability':
+                    insert(trans, var.Liabilities[var.CA['location']])
+            
+                # recalculate CFM statement
+                f.calc_statement()
+
+                # re-display the account
+                if var.CA['type'] == 'asset':
+                    f.display(var.Assets[var.CA['location']])
+                else:
+                    f.display(var.Liabilities[var.CA['location']])
+
+            except decimal.InvalidOperation:
+                print("\n Invalid transaction format")
         else:
             print(" Please select an account before adding a transaction. ")
+        var.CFM_saved = False
 
     # delete an existing transaction
     
     # save changes
-    elif cmd == 'save':
+    elif cmd == 'save' or cmd == 'write':
         f.rewrite_raw()
         f.rewrite_csv()
+        var.CFM_saved = True
 
     # exit program
     elif cmd in exit_words:
-        break
+        check_for_unsaved_changes()
+        break 
     # unknown command
     else:
         print(" unknown command: ", cmd)    
