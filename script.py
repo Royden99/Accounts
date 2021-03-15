@@ -52,8 +52,10 @@ while True:
      
     #debug
     if cmd == ' ':
-        print('current month -- ',var.MonthYear)
-        print('latest month  -- ',var.most_recent_month)
+        if var.CA['type'] == 'liability':
+            print(var.Liabilities[var.CA['location']][1])
+        else:
+            print(var.Assets[var.CA['location']][1])
         
     # navigate Fiscal Months 
     elif cmd[0:3] in var.months:      # syntax '[month] [year]'
@@ -94,16 +96,19 @@ while True:
             print(" Sorry, you can only delete the latest Month in the file.")
             continue
         else:
-            check_for_unsaved_changes()
+            # double-check with the user
+            confirm = input(" Delete this fiscal month?\n Any existing transactions will be lost. [y/n]\n\n>>")
+            if confirm == 'yes' or confirm == 'y':
+                check_for_unsaved_changes()
 
-            # load the second most recent fiscal month
-            f.load_fiscal_month(f.find_month('prev'))
-            
-            # rewrite csvfile, simply leaving out any data that used to follow
-            f.rewrite_csv(del_month = True)
-            
-            var.most_recent_month = var.MonthYear
-            f.display_statement()
+                # load the second most recent fiscal month
+                f.load_fiscal_month(f.find_month('prev'))
+                
+                # rewrite csvfile, simply leaving out any data that used to follow
+                f.rewrite_csv(del_month = True)
+                
+                var.most_recent_month = var.MonthYear
+                f.display_statement()
 
     #   IN CURRENT FISCAL MONTH:
     
@@ -169,25 +174,13 @@ while True:
                     """ Insert 'transaction' into the appropriate list of transactions & tags.
                     Then, recalculate the final balance. """
                     if prefix == '-':
-                        # insert transaction at the end of existing expenses, if any
-                        if len(account[1]) == 1:
-                            account[1].append([transaction, tag])
-                        else:
-                            for i in range(1, len(account[1]), 1):
-                                if account[1][i] == ['', '']:
-                                    account[1].insert(i, [transaction, tag])
-                                    break
-                                elif account[1][i][0][0] == '+':
-                                    account[1].insert(i, ['', ''])
-                                    account[1].insert(i, [transaction, tag])
-                                    break
+                        # insert transaction just before the second blank entry 
+                        for i in range(1, len(account[1]), 1):
+                            if account[1][i] == ['', '']:
+                                account[1].insert(i, [transaction, tag])
+                                break
                     elif prefix == '+':
                         # insert transaction at the very end of the list
-                        try:
-                            if account[1][len(account[1])-1][0][0] == '-':
-                                account[1].append(['', ''])
-                        except IndexError:
-                            pass
                         account[1].append(['+'+transaction, tag])
 
                     # add transaction to final balance

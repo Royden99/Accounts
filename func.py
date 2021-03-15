@@ -159,7 +159,9 @@ def read_transactions(n):
         
         # do not allow for a completely empty list of transactions
         if acnt[1] == []:
-            acnt[1] = [['','']]
+            acnt[1] = [['',''], ['','']]
+        elif acnt[1][len(acnt[1])-1][0][0] == '-':
+            acnt[1].append(['',''])
 
 def calc_bal(account):
     """ This function, for the 'account' specified, looks at last month's final balance
@@ -263,6 +265,7 @@ def load_fiscal_month(MoYr="recent"):
         var.linecount += 1
     var.linecount += 2
     while True:
+        # Actually build the 'statement' dictionary out of keywords pulled straight from the csvfile
         try:
             key = build_cell(1)
             if key != "" and key is not None:
@@ -293,13 +296,15 @@ def calc_statement(transaction="N/A", account="N/A", double_check='no'):
         for acnt in var.Assets:
             for trans in acnt[1]:
                 if '+' in trans[0]:
-                    if trans[1][:2] == 'to ' and trans[1][3:] in var.account_names:
-                        # transaction is a transfer between accounts
+                    # transaction may be a transfer between accounts.
+                    #  these are marked by a tag 'to [or from] <account name>'
+                    #  don't include these in 'Revenue' or 'Expenses'
+                    if trans[1][:5] == 'from ' and trans[1][5:] in var.account_names:
                         pass
                     else:
                         revenue += deci(trans[0])
                 elif '-' in trans[0]:
-                    if trans[1][:4] == 'from ' and trans[1][5:] in var.account_names:
+                    if trans[1][:3] == 'to ' and trans[1][3:] in var.account_names:
                         pass
                     else:
                         expenses += deci(trans[0])
@@ -532,6 +537,7 @@ def rewrite_csv(new_month = False, del_month = False):
                                     month_found = True
                             else:
                                 write = True
+                                temp.write(line)
                     else:
                         temp.write(line)
 
