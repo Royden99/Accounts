@@ -110,6 +110,10 @@ while True:
                 var.most_recent_month = var.MonthYear
                 f.display_statement()
 
+    # search database for specific transactions
+    elif cmd == 'search_transactions':
+        pass
+
     #   IN CURRENT FISCAL MONTH:
     
     # navigate accounts

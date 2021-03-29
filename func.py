@@ -39,16 +39,33 @@ def set_linecount(MoYr="current"):
             def read_info():
                 csvfile.seek(0,0)   # reset pointer to the beginning of the file
                 var.raw = []
+                var.prev_accounts = []
                 read = False
+                look_for_prev_accounts = False
                 look = False
                 end = False
                 i = 0
                 for line in csvfile:                # use the titles to find the f_m we want; start reading lines 
                     if look is False:
                         if line[0:3] in var.months:
-                            if build_cell(0, line) == f_m[1]:
+                            if build_c
+                            ll(0, line) == f_m[1]:
                                 look = True
                     elif read is False:
+                        # figure out the cell positions of the previous month's accounts
+                        if build_cell(1, line) == 'ASSETS':
+                            look_for_prev_accounts = True
+                        if look_for_prev_accounts is True:
+                            cellcount = 0
+#                           while True:
+#                               name = build_cell(cellcount, line)
+#                               if name != '':
+#                                   var.prev_accounts.append([name, cellcount])
+#                               print(name)
+#                               if name == None:
+#                                   quit()
+                            print(line)
+                        # include previous month's final balance info in 'raw'
                         if line[0:14] == "Final balance:":
                             read = True
                             var.raw.append(line)

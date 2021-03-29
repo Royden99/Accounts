@@ -29,6 +29,8 @@ Liabilities = []
 
 CA = {'name':"", 'type':"", 'location':0}               # Current Account in CFM
 
+prev_accounts = []      # names and column positions of accounts in previous fiscal month
+
 account_names = []      # names of accounts in CFM
 
 statement = {}          # final statement data in CFM
