@@ -52,10 +52,12 @@ while True:
      
     #debug
     if cmd == ' ':
-        if var.CA['type'] == 'liability':
-            print(var.Liabilities[var.CA['location']][1])
+        if var.CA['type'] == 'asset':
+            accounts = var.Assets
         else:
-            print(var.Assets[var.CA['location']][1])
+            accounts = var.Liabilities
+        for line in accounts[var.CA['location']][1]:
+            print(line)
         
     # navigate Fiscal Months 
     elif cmd[0:3] in var.months:      # syntax '[month] [year]'
@@ -179,7 +181,7 @@ while True:
                     Then, recalculate the final balance. """
                     if prefix == '-':
                         # insert transaction just before the second blank entry 
-                        for i in range(1, len(account[1]), 1):
+                        for i in range(0, len(account[1]), 1):
                             if account[1][i] == ['', '']:
                                 account[1].insert(i, [transaction, tag])
                                 break

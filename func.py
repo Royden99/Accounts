@@ -48,8 +48,7 @@ def set_linecount(MoYr="current"):
                 for line in csvfile:                # use the titles to find the f_m we want; start reading lines 
                     if look is False:
                         if line[0:3] in var.months:
-                            if build_c
-                            ll(0, line) == f_m[1]:
+                            if build_cell(0, line) == f_m[1]:
                                 look = True
                     elif read is False:
                         # figure out the cell positions of the previous month's accounts
@@ -64,7 +63,7 @@ def set_linecount(MoYr="current"):
 #                               print(name)
 #                               if name == None:
 #                                   quit()
-                            print(line)
+#                           print(line)
                         # include previous month's final balance info in 'raw'
                         if line[0:14] == "Final balance:":
                             read = True
@@ -154,7 +153,7 @@ def read_transactions(n):
 
     for acnt in n:
         set_linecount()
-        var.linecount += 3
+        var.linecount += 4 
         while True:
             try:
                 trans = build_cell(acnt[2])
@@ -176,7 +175,7 @@ def read_transactions(n):
         
         # do not allow for a completely empty list of transactions
         if acnt[1] == []:
-            acnt[1] = [['',''], ['','']]
+            acnt[1] = [['','']]
         elif acnt[1][len(acnt[1])-1][0][0] == '-':
             acnt[1].append(['',''])
 
@@ -446,7 +445,7 @@ def rewrite_raw(new_month = False):
     for account in [(chain) for list_ in (var.Assets, var.Liabilities) for chain in list_]:
         cellcount, line = add_info(account[0], line, cellcount, account[2])
 
-    line.append('\n')
+    line.append('\n\n')
     var.raw.append(''.join(line))
 
     # place transactions & tags
@@ -455,18 +454,14 @@ def rewrite_raw(new_month = False):
     for account in [(chain) for list_ in (var.Assets, var.Liabilities) for chain in list_]:
         if len(account[1]) > length:
             length = len(account[1])
+        
+        # place transactions row by row into appropriate account columns until the number of rows
+        #   equals the length of the longest list of transactions
     i = 0
     while i <= length:
         line = []
         cellcount = 0
-        for account in var.Assets:
-            try:
-                info = "{},{}".format(account[1][i][0], account[1][i][1])
-            except IndexError:
-                info = ","
-            cellcount, line = add_info(info, line, cellcount, account[2])
-            cellcount += 1  # necessary because two values are appended to 'list' simultaneously
-        for account in var.Liabilities:
+        for account in [(chain) for list_ in (var.Assets, var.Liabilities) for chain in list_]:
             try:
                 info = "{},{}".format(account[1][i][0], account[1][i][1])
             except IndexError:
@@ -482,9 +477,7 @@ def rewrite_raw(new_month = False):
     line = []
     line.append('Final balance:,')
     cellcount = 1
-    for account in var.Assets:
-        cellcount, line = add_info(str(account[4]), line, cellcount, account[2])
-    for account in var.Liabilities:
+    for account in [(chain) for list_ in (var.Assets, var.Liabilities) for chain in list_]:
         cellcount, line = add_info(str(account[4]), line, cellcount, account[2])
     line.append('\n')
     var.raw.append(''.join(line))
@@ -569,9 +562,13 @@ def display(account):
     
     print("\n\n\n\t{}\n\t{}\n\n prev. balance:\t{}".format(account[0],
         ''.ljust(len(account[0]),'='), account[5]))
+    if account[1][0] != ['','']:
+        print('')
     for item in account[1]:
         print(item[0].rjust(13), '\t', item[1].ljust(True))
-    print("\n final balance:\t", account[4])
+    if account[1][len(account[1])-1] != ['','']:
+        print('')
+    print(" final balance:\t", account[4])
     print("\n =============================================================")
 
 
